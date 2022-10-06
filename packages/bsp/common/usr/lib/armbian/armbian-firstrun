@@ -53,10 +53,8 @@ case "$1" in
 	sed '1s/^/IMAGE_UUID=/' /proc/sys/kernel/random/uuid >> /etc/armbian-image-release
 
 	# SSH Keys creation
-	rm -f /etc/ssh/ssh_host*
 	read entropy_before </proc/sys/kernel/random/entropy_avail
-	dpkg-reconfigure openssh-server >/dev/null 2>&1
-	service sshd restart
+	ssh-keygen -A >/dev/null 2>&1
 	read entropy_after </proc/sys/kernel/random/entropy_avail
 	echo -e "\n### [firstrun] Recreated SSH keys (entropy: ${entropy_before} ${entropy_after})" >>${Log}
 
@@ -107,12 +105,9 @@ case "$1" in
 
 		mvebu64|mt7623)
 			# configure/enable/start systemd-networkd
-			systemctl start systemd-networkd.service
-			systemctl start systemd-resolved.service
-			systemctl enable systemd-networkd.service
-			systemctl enable systemd-resolved.service
 			ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-			systemctl restart systemd-networkd
+			systemctl enable --now systemd-networkd.service
+			systemctl enable --now systemd-resolved.service
 			;;
 		x86|arm64)
 			[[ -n "$(dmesg | grep "No NVIDIA GPU found")" ]] && sudo apt-get -y -qq purge nvidia-dkms-510 nvidia-driver-510 nvidia-settings nvidia-common >> /dev/null
@@ -126,7 +121,6 @@ case "$1" in
 	[[ $BRANCH == dev && $LINUXFAMILY == rockchip ]] && set_fixed_mac
 	[[ $LINUXFAMILY == meson ]] && set_fixed_mac
 	[[ $LINUXFAMILY == meson64 ]] && set_fixed_mac
-	systemctl disable armbian-firstrun
 	exit 0
 	;;
 

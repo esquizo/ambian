@@ -75,6 +75,9 @@ PRE_INSTALL_DISTRIBUTION_SPECIFIC
 	# install from apt.armbian.com
 	[[ $EXTERNAL_NEW == prebuilt ]] && chroot_installpackages "yes"
 
+	# remove existing ssh keys
+	rm -f ${SDCARD}/etc/ssh/ssh_host_*
+
 	# stage: user customization script
 	# NOTE: installing too many packages may fill tmpfs mount
 	customize_image
@@ -866,6 +869,10 @@ PRE_UPDATE_INITRAMFS
 
 	# fix wrong / permissions
 	chmod 755 $MOUNT
+
+	# cleanup image according to systemd.io/BUILDING_IMAGES/
+	echo -e "uninitialized\n" > ${MOUNT}/etc/machine-id
+	rm ${MOUNT}/var/lib/systemd/random-seed ${MOUNT}/var/lib/dbus/machine-id
 
 	call_extension_method "pre_umount_final_image" "config_pre_umount_final_image" << 'PRE_UMOUNT_FINAL_IMAGE'
 *allow config to hack into the image before the unmount*
