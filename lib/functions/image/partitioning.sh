@@ -214,7 +214,7 @@ function prepare_partitions() {
 						echo "$bootpart : name=\"bootfs\", start=${next}MiB, size=${BOOTSIZE}MiB, type=${type}"
 						local next=$(($next + $BOOTSIZE))
 					else
-						# no `size` argument mean "as much as possible"
+						# No 'size' argument means "expand as much as possible"
 						echo "$bootpart : name=\"bootfs\", start=${next}MiB, type=${type}"
 					fi
 				fi
@@ -222,9 +222,31 @@ function prepare_partitions() {
 				# Root filesystem partition
 				if [[ -n "$rootpart" ]]; then
 					# dos: Linux
-					# gpt: Linux filesystem
-					[[ "$IMAGE_PARTITION_TABLE" != "gpt" ]] && local type="83" || local type="0FC63DAF-8483-4772-8E79-3D69D8477DE4"
-					# no `size` argument mean "as much as possible"
+					# gpt: Linux root
+					if [[ "$IMAGE_PARTITION_TABLE" != "gpt" ]]; then
+						local type="83"
+					else
+						# Linux root has a different Type-UUID for every architecture
+						# See https://uapi-group.org/specifications/specs/discoverable_partitions_specification/
+						case "$ARCH" in
+							amd64)
+								local type="4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709" # "Linux root (x86-64)"
+								;;
+							arm64)
+								local type="B921B045-1DF0-41C3-AF44-4C6F280D3FAE" # "Linux root (ARM-64)"
+								;;
+							armhf)
+								local type="69DAD710-2CE4-4E3C-B16C-21A1D49ABED3" # "Linux root (ARM)"
+								;;
+							riscv64)
+								local type="72EC70A6-CF74-40E6-BD49-4BDA08E8F224" # "Linux root (RISC-V-64)"
+								;;
+							*)
+								exit_with_error "Unknown 'ARCH' variable while partitioning the root filesystem: '${ARCH}'"
+								;;
+						esac
+					fi
+					# No 'size' argument means "expand as much as possible"
 					echo "$rootpart : name=\"rootfs\", start=${next}MiB, type=${type}"
 				fi
 			}
